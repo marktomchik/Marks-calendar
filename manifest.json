@@ -1,0 +1,9 @@
+{
+  "id": "mark-calendar",
+  "name": "Mark Calendar",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "Fast Google Calendar view with linked notes, reminders and an iPhone-style weather panel.",
+  "author": "Mark Lysak",
+  "isDesktopOnly": false
+}

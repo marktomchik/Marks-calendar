@@ -1,0 +1,27 @@
+{
+  "name": "mark-calendar",
+  "version": "1.0.0",
+  "description": "Lightweight Google Calendar view for Obsidian with linked notes and reminders.",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc --noEmit && node esbuild.config.mjs production",
+    "install-vault": "node esbuild.config.mjs production && node install.mjs"
+  },
+  "author": "Mark Lysak",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "esbuild": "0.21.5",
+    "obsidian": "1.6.6",
+    "typescript": "5.4.5"
+  },
+  "dependencies": {
+    "@fullcalendar/core": "6.1.15",
+    "@fullcalendar/daygrid": "6.1.15",
+    "@fullcalendar/interaction": "6.1.15",
+    "@fullcalendar/list": "6.1.15",
+    "@fullcalendar/timegrid": "6.1.15"
+  }
+}
