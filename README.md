@@ -2,11 +2,12 @@
 
 A fast Google Calendar view for Obsidian — about 10× lighter than general-purpose calendar plugins (~320 KB).
 
-> 🇺🇦 **Коротко українською:** швидкий календар Google для Obsidian. Двостороння синхронізація з Google Calendar, нотатки до подій без дублікатів, нагадування та погода в стилі iPhone. Інтерфейс плагіна — українською.
+> 🇺🇦 **Коротко українською:** швидкий календар Google для Obsidian. Двостороння синхронізація з Google Calendar, нотатки до подій без дублікатів, масштаб годин через Ctrl/Shift + прокрутку, нагадування та погода в стилі iPhone. Інтерфейс плагіна — українською.
 
 ## Features
 - **Google Calendar, two-way sync** — view, create, edit, drag & resize, delete. Several calendars, each with its own colour.
 - **Views** — month, week, 3 days, day, list. 24-hour time.
+- **Time zoom** — stretch or squeeze the hours in week / 3-day / day views with **Ctrl/Cmd + scroll**, **Shift + scroll** or a trackpad pinch; the time under the cursor stays in place. Remembered separately for desktop and phone; also available as commands (zoom in / out / reset).
 - **Linked notes** — one note per event in a chosen folder, created from a template. Never creates duplicates, even right after startup or a sync. Ctrl/Cmd+click an event to open its note.
 - **Daily note** opens when you click a date.
 - **Reminders** — in-app pop-up plus a system notification. The event's own Google reminders take priority.

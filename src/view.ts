@@ -13,6 +13,7 @@ import { EventDetailsModal, EventEditModal } from "./modal";
 import { WeatherPanel } from "./weatherPanel";
 import { icon as wIcon } from "./weather";
 import { VIEW_LABELS } from "./settings";
+import { TimeZoom, ZOOM_STEP } from "./zoom";
 
 export const VIEW_TYPE = "mark-calendar-view";
 
@@ -23,6 +24,8 @@ export class CalendarView extends ItemView {
   private resizeObs: ResizeObserver | null = null;
   private unsub: (() => void) | null = null;
   private byKey = new Map<string, CalEvent>();
+  private zoom: TimeZoom | null = null;
+  private zoomSaveTimer = 0;
 
   constructor(leaf: WorkspaceLeaf, private plugin: MarkCalendarPlugin) {
     super(leaf);
@@ -122,6 +125,21 @@ export class CalendarView extends ItemView {
     this.calendar.render();
     this.addWeatherButton(calEl);
 
+    // Vertical zoom: Ctrl/Cmd + scroll, Shift + scroll or trackpad pinch.
+    const zoomKey = mobile ? "timeZoomMobile" : "timeZoom";
+    this.zoom = new TimeZoom({
+      host: root,
+      calEl,
+      getCalendar: () => this.calendar,
+      get: () => s[zoomKey] || 1,
+      set: (z) => {
+        s[zoomKey] = z;
+        window.clearTimeout(this.zoomSaveTimer);
+        this.zoomSaveTimer = window.setTimeout(() => this.plugin.saveSettings(), 600);
+      },
+    });
+    this.registerDomEvent(calEl, "wheel", this.zoom.onWheel, { passive: false, capture: true });
+
     this.resizeObs = new ResizeObserver(() => this.calendar?.updateSize());
     this.resizeObs.observe(calEl);
     this.unsub = this.plugin.store.onChange(() => this.calendar?.refetchEvents());
@@ -132,6 +150,9 @@ export class CalendarView extends ItemView {
   async onClose(): Promise<void> {
     this.unsub?.();
     this.resizeObs?.disconnect();
+    this.zoom?.destroy();
+    this.zoom = null;
+    if (this.zoomSaveTimer) { window.clearTimeout(this.zoomSaveTimer); await this.plugin.saveSettings(); }
     this.calendar?.destroy();
     this.weather?.destroy();
     this.calendar = null;
@@ -144,6 +165,10 @@ export class CalendarView extends ItemView {
   }
 
   today(): void { this.calendar?.today(); }
+
+  zoomIn(): void { this.zoom?.zoomBy(ZOOM_STEP); }
+  zoomOut(): void { this.zoom?.zoomBy(1 / ZOOM_STEP); }
+  zoomReset(): void { this.zoom?.reset(); }
 
   // ---------- helpers ----------
 

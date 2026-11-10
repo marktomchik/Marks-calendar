@@ -27,6 +27,9 @@ export interface Settings {
   slotMaxTime: string;
   scrollTime: string;
   refreshMinutes: number;
+  /** Vertical zoom of the time grid (1 = default), separately for desktop and mobile. */
+  timeZoom: number;
+  timeZoomMobile: number;
 
   notesFolder: string;
   noteTemplate: string;
@@ -59,6 +62,8 @@ export const DEFAULT_SETTINGS: Settings = {
   slotMaxTime: "24:00",
   scrollTime: "08:00",
   refreshMinutes: 5,
+  timeZoom: 1,
+  timeZoomMobile: 1,
 
   notesFolder: "06 Календар",
   noteTemplate: DEFAULT_TEMPLATE,
