@@ -38,6 +38,9 @@ export default class MarkCalendarPlugin extends Plugin {
     });
     this.addCommand({ id: "refresh", name: "Оновити події", callback: () => this.views().forEach((v) => v.refresh()) });
     this.addCommand({ id: "today", name: "Перейти на сьогодні", callback: () => this.views().forEach((v) => v.today()) });
+    this.addCommand({ id: "zoom-in", name: "Масштаб часу: детальніше", callback: () => this.views().forEach((v) => v.zoomIn()) });
+    this.addCommand({ id: "zoom-out", name: "Масштаб часу: компактніше", callback: () => this.views().forEach((v) => v.zoomOut()) });
+    this.addCommand({ id: "zoom-reset", name: "Масштаб часу: скинути", callback: () => this.views().forEach((v) => v.zoomReset()) });
 
     this.addSettingTab(new MarkCalendarSettingTab(this.app, this));
 

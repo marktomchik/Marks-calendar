@@ -7,7 +7,7 @@
   gap: 10px;
   overflow: hidden;
 }
-.mc-calendar { flex: 1 1 auto; min-height: 0; }
+.mc-calendar { flex: 1 1 auto; min-height: 0; position: relative; }
 .mc-connect-hint {
   padding: 8px 12px;
   border-radius: 10px;
@@ -50,9 +50,26 @@
 .mc-root .fc .fc-timegrid-event .fc-event-main { padding: 2px 4px; }
 .mc-root .fc .fc-col-header-cell-cushion { color: var(--text-normal); text-decoration: none; padding: 4px 2px; }
 .mc-root .fc a.fc-daygrid-day-number { color: var(--text-muted); text-decoration: none; }
-.mc-root .fc .fc-timegrid-slot { height: 2.4em; }
+.mc-root .fc .fc-timegrid-slot { height: calc(2.4em * var(--mc-zoom, 1)); }
+/* Let rows shrink below one text line when zoomed out (labels may overflow their row). */
+.mc-root .fc .fc-timegrid-slot:empty::before { content: none; }
+.mc-root .fc .fc-timegrid-slot-label-frame {
+  height: 0; overflow: visible;
+  display: flex; align-items: center; justify-content: flex-end;
+}
 .mc-root .fc .fc-timegrid-slot-label { color: var(--text-faint); }
 .mc-root .fc-event.mc-has-note .fc-event-title::before { content: "📝 "; }
+
+/* Zoom percentage that flashes while zooming. */
+.mc-zoom-badge {
+  position: absolute; top: 52px; left: 50%; transform: translateX(-50%);
+  z-index: 10; pointer-events: none;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--background-modifier-cover, rgba(0, 0, 0, 0.6)); color: var(--text-on-accent, #fff);
+  font-size: var(--font-ui-small); font-variant-numeric: tabular-nums;
+  opacity: 0; transition: opacity 0.25s ease;
+}
+.mc-zoom-badge.is-visible { opacity: 1; }
 
 .mc-dayhead { display: inline-flex; align-items: center; gap: 6px; text-transform: capitalize; }
 .mc-dayhead-w {
@@ -173,7 +190,7 @@
 .mc-mobile .fc .fc-toolbar-title { font-size: 1.05em; }
 .mc-mobile .fc .fc-toolbar.fc-footer-toolbar { margin-top: 6px; padding-bottom: 6px; }
 .mc-mobile .fc .fc-button { padding: 6px 10px; }
-.mc-mobile .fc .fc-timegrid-slot { height: 2.8em; }
+.mc-mobile .fc .fc-timegrid-slot { height: calc(2.8em * var(--mc-zoom, 1)); }
 .mc-mobile .fc .fc-timegrid-axis-cushion,
 .mc-mobile .fc .fc-timegrid-slot-label-cushion { font-size: 0.85em; }
 .mc-mobile .mc-dayhead { flex-direction: column; gap: 0; }
