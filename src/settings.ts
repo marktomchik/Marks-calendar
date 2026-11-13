@@ -4,6 +4,7 @@ export interface CalendarInfo {
   color: string;
   enabled: boolean;
   readOnly: boolean;
+  primary?: boolean;
 }
 
 export interface GoogleTokens {

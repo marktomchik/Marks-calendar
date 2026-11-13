@@ -202,6 +202,7 @@ export class GoogleClient {
       color: c.backgroundColor ?? "#4ca8df",
       enabled: !!c.primary || !!c.selected,
       readOnly: !(c.accessRole === "owner" || c.accessRole === "writer"),
+      primary: !!c.primary,
     }));
   }
 

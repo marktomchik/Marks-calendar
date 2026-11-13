@@ -110,7 +110,7 @@ export class CalendarView extends ItemView {
       },
       select: (arg) => {
         this.calendar?.unselect();
-        if (!this.plugin.google.connected) { this.plugin.openSettings(); return; }
+        if (!this.plugin.google.connected) { new Notice("Google не підключено — подію не можна створити. Підключіть у налаштуваннях."); this.plugin.openSettings(); return; }
         new EventEditModal(this.app, this.plugin.modalActions(), { start: arg.start, end: arg.end, allDay: arg.allDay }).open();
       },
       eventDrop: (arg) => this.moveEvent(arg.event, arg.revert),

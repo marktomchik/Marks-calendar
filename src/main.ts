@@ -17,6 +17,13 @@ export default class MarkCalendarPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    // 1.0.0 auto-picked the first writable calendar as default, often a hidden one —
+    // new events then went into a calendar that isn't shown. Repair that once.
+    const fixed = this.pickDefaultCalendar();
+    if (fixed && fixed !== this.settings.defaultCalendarId && !this.calendarById(this.settings.defaultCalendarId)?.enabled) {
+      this.settings.defaultCalendarId = fixed;
+      await this.saveSettings();
+    }
 
     this.google = new GoogleClient({
       getClient: () => ({ clientId: this.settings.clientId, clientSecret: this.settings.clientSecret }),
@@ -89,6 +96,22 @@ export default class MarkCalendarPlugin extends Plugin {
     return this.settings.calendars.find((c) => c.id === id);
   }
 
+  private isPrimary(c: CalendarInfo): boolean {
+    return !!c.primary || (!!this.settings.tokens?.email && c.id === this.settings.tokens.email);
+  }
+
+  /** Best calendar for new events: the chosen default if visible, else primary, else any visible writable one. */
+  pickDefaultCalendar(): string {
+    const cals = this.settings.calendars.filter((c) => !c.readOnly);
+    const chosen = cals.find((c) => c.id === this.settings.defaultCalendarId);
+    if (chosen?.enabled) return chosen.id;
+    return (cals.find((c) => c.enabled && this.isPrimary(c))
+      ?? cals.find((c) => c.enabled)
+      ?? chosen
+      ?? cals.find((c) => this.isPrimary(c))
+      ?? cals[0])?.id ?? "";
+  }
+
   async openNote(ev: CalEvent): Promise<void> {
     try {
       const file = await this.notes.openOrCreate(ev, this.calendarById(ev.calendarId)?.name ?? "");
@@ -128,8 +151,9 @@ export default class MarkCalendarPlugin extends Plugin {
   modalActions(): EventModalActions {
     return {
       calendars: this.settings.calendars,
-      defaultCalendarId: this.settings.defaultCalendarId || this.settings.calendars.find((c) => !c.readOnly)?.id || "",
+      defaultCalendarId: this.pickDefaultCalendar(),
       save: async (calendarId, body, existing) => {
+        if (!this.google.connected) throw new Error("Google не підключено — відкрийте налаштування Mark Calendar і натисніть «Підключити»");
         if (existing) {
           const patch: any = { ...body };
           if (body.start?.date) { patch.start = { ...body.start, dateTime: null, timeZone: null }; patch.end = { ...body.end, dateTime: null, timeZone: null }; }
@@ -137,7 +161,16 @@ export default class MarkCalendarPlugin extends Plugin {
           await this.google.patchEvent(existing.calendarId, existing.g.id, patch);
         } else {
           if (!calendarId) throw new Error("Немає календаря для запису — підключіть Google у налаштуваннях");
-          await this.google.insertEvent(calendarId, body);
+          const created = await this.google.insertEvent(calendarId, body);
+          if (!created?.id) throw new Error("Google не повернув створену подію");
+          const cal = this.calendarById(calendarId);
+          if (cal && !cal.enabled) {
+            cal.enabled = true;
+            await this.saveSettings();
+            new Notice(`Подію створено в «${cal.name}». Цей календар був прихований — тепер він показується.`, 8000);
+          } else {
+            new Notice(`Подію створено${cal ? ` у «${cal.name}»` : ""} ✅`);
+          }
         }
         this.store.invalidate();
       },
@@ -156,8 +189,8 @@ export default class MarkCalendarPlugin extends Plugin {
       const o = old.get(c.id);
       return o ? { ...c, enabled: o.enabled, color: o.color } : c;
     });
-    if (!this.calendarById(this.settings.defaultCalendarId)) {
-      this.settings.defaultCalendarId = this.settings.calendars.find((c) => !c.readOnly)?.id ?? "";
+    if (!this.calendarById(this.settings.defaultCalendarId)?.enabled) {
+      this.settings.defaultCalendarId = this.pickDefaultCalendar();
     }
     await this.saveSettings();
     this.store.invalidate();

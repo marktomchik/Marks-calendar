@@ -116,7 +116,7 @@ export class EventEditModal extends Modal {
       t.inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") this.submit(); });
     });
 
-    const writable = this.actions.calendars.filter((c) => !c.readOnly && c.enabled);
+    const writable = this.actions.calendars.filter((c) => !c.readOnly && (c.enabled || c.id === this.calendarId));
     if (writable.length > 1 && !this.init.existing) {
       new Setting(contentEl).setName("Календар").addDropdown((d) => {
         writable.forEach((c) => d.addOption(c.id, c.name));
@@ -175,7 +175,8 @@ export class EventEditModal extends Modal {
       await this.actions.save(this.calendarId, body, this.init.existing);
       this.close();
     } catch (e: any) {
-      new Notice(e.message ?? String(e));
+      console.error("[mark-calendar] save failed", e);
+      new Notice(`Подію не збережено: ${e.message ?? String(e)}`, 10000);
     } finally {
       this.saving = false;
     }
