@@ -51,8 +51,14 @@ function form(data: Record<string, string>): string {
     .join("&");
 }
 
+/** Loopback address Google redirects to; on a phone nothing listens there, so the page fails and the user copies its URL. */
+const MANUAL_REDIRECT = "http://127.0.0.1:53682";
+const PENDING_KEY = "mark-calendar-oauth-pending";
+interface PendingAuth { verifier: string; state: string; redirectUri: string; at: number }
+
 export class GoogleClient {
   private refreshing: Promise<string> | null = null;
+  private pending: PendingAuth | null = null;
 
   constructor(private host: GoogleHost) {}
 
@@ -64,7 +70,7 @@ export class GoogleClient {
 
   async connect(): Promise<void> {
     if (!Platform.isDesktopApp) {
-      throw new Error("Підключіть Google на комп'ютері — токен синхронізується разом із налаштуваннями.");
+      throw new Error("На телефоні використовуйте вхід через вставку адреси (кнопка «Підключити» в налаштуваннях).");
     }
     const { clientId, clientSecret } = this.host.getClient();
     if (!clientId || !clientSecret) throw new Error("Вкажіть Client ID і Client Secret у налаштуваннях.");
@@ -111,6 +117,66 @@ export class GoogleClient {
       });
     });
 
+    await this.exchangeCode(code, verifier, redirectUri);
+  }
+
+  // ---------- OAuth on a phone (no local server: the user pastes the redirect URL back) ----------
+
+  /** Builds the Google sign-in URL for the phone flow and remembers the PKCE verifier. */
+  async beginManualAuth(): Promise<string> {
+    const { clientId, clientSecret } = this.host.getClient();
+    if (!clientId || !clientSecret) throw new Error("Спочатку вставте Client ID і Client Secret.");
+    if (!clientId.endsWith(".apps.googleusercontent.com")) {
+      throw new Error("Client ID має закінчуватися на .apps.googleusercontent.com — перевірте, що скопіювали саме його.");
+    }
+    const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+    const challenge = b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))));
+    const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
+    const pending: PendingAuth = { verifier, state, redirectUri: MANUAL_REDIRECT, at: Date.now() };
+    try { window.localStorage.setItem(PENDING_KEY, JSON.stringify(pending)); } catch { /* ignore */ }
+    this.pending = pending;
+    return `${AUTH_URL}?${form({
+      client_id: clientId,
+      redirect_uri: MANUAL_REDIRECT,
+      response_type: "code",
+      scope: SCOPES,
+      access_type: "offline",
+      prompt: "consent",
+      code_challenge: challenge,
+      code_challenge_method: "S256",
+      state,
+    })}`;
+  }
+
+  /** Accepts the full address from the browser ("http://127.0.0.1…?code=…") or just the code. */
+  async finishManualAuth(input: string): Promise<void> {
+    let pending = this.pending;
+    if (!pending) {
+      try { pending = JSON.parse(window.localStorage.getItem(PENDING_KEY) ?? "null"); } catch { pending = null; }
+    }
+    if (!pending || Date.now() - pending.at > 30 * 60_000) {
+      throw new Error("Сесія входу застаріла — натисніть «1. Увійти в Google» ще раз.");
+    }
+    const text = input.trim();
+    if (!text) throw new Error("Вставте адресу зі сторінки браузера.");
+    let code = text;
+    try { code = decodeURIComponent(text); } catch { /* keep as is */ }
+    if (/[?&]code=|[?&]error=/.test(text)) {
+      const q = new URLSearchParams(text.slice(text.indexOf("?") + 1).split("#")[0]);
+      const err = q.get("error");
+      if (err) throw new Error(err === "access_denied" ? "Доступ не надано. Додайте свою пошту в Test users і спробуйте ще раз." : `Google: ${err}`);
+      code = q.get("code") ?? "";
+      const st = q.get("state");
+      if (st && st !== pending.state) throw new Error("Ця адреса від попередньої спроби — увійдіть ще раз і вставте нову.");
+    }
+    if (!code) throw new Error("В адресі немає коду. Скопіюйте всю адресу, що починається з http://127.0.0.1");
+    await this.exchangeCode(code, pending.verifier, pending.redirectUri);
+    this.pending = null;
+    try { window.localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
+  }
+
+  private async exchangeCode(code: string, verifier: string, redirectUri: string): Promise<void> {
+    const { clientId, clientSecret } = this.host.getClient();
     const res = await requestUrl({
       url: TOKEN_URL,
       method: "POST",
@@ -125,8 +191,18 @@ export class GoogleClient {
       }),
       throw: false,
     });
-    if (res.status !== 200) throw new GoogleError(`Не вдалося отримати токен (${res.status})`, res.status);
+    if (res.status !== 200) {
+      let reason = "";
+      try { reason = res.json?.error ?? ""; } catch { /* non-json */ }
+      const hint: Record<string, string> = {
+        invalid_client: "невірний Client ID або Client Secret (або клієнт не типу Desktop app)",
+        invalid_grant: "код уже використано або він застарів — увійдіть ще раз",
+        redirect_uri_mismatch: "клієнт OAuth має бути типу Desktop app, не Web application",
+      };
+      throw new GoogleError(`Не вдалося отримати токен (${res.status}${reason ? `: ${hint[reason] ?? reason}` : ""})`, res.status);
+    }
     const j = res.json;
+    if (!j.refresh_token) throw new Error("Google не дав refresh token — відкличте доступ у myaccount.google.com/permissions і підключіться знову.");
     let email: string | undefined;
     try {
       const payload = JSON.parse(atob(j.id_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));

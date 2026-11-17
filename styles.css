@@ -219,3 +219,8 @@
 .mc-help { margin-bottom: 10px; line-height: 1.5; }
 .mc-template { width: 100%; min-width: 260px; font-family: var(--font-monospace); font-size: 0.85em; }
 .mc-city-results { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 10px; }
+
+/* ===== Phone sign-in ===== */
+.mc-auth-steps { padding-left: 1.2em; margin: 0 0 8px; line-height: 1.45; }
+.mc-auth-steps li { margin-bottom: 4px; }
+.mc-auth-input { width: 100%; font-family: var(--font-monospace); font-size: 0.85em; resize: vertical; margin-top: 4px; }

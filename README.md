@@ -26,12 +26,49 @@ The interface language is Ukrainian.
 Add this repository in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
 
 ## Connecting Google
-The plugin talks to Google directly with your own OAuth client — no third-party server.
-1. In [Google Cloud Console](https://console.cloud.google.com/), enable **Google Calendar API**.
-2. Create an OAuth client of type **Desktop app**, and add your account to *Test users*.
-3. Paste the Client ID and Client Secret into the plugin settings and click **Connect** on a desktop computer (sign-in uses a local `127.0.0.1` redirect).
+The plugin talks to Google directly with your own OAuth client — no third-party server. Credentials and tokens are stored only in your vault's plugin `data.json`.
 
-Credentials and tokens are stored only in your vault's plugin `data.json`.
+### 🇺🇦 Як підключити Google Calendar (покроково)
+
+**А. Google Cloud Console** (один раз, зручніше на комп'ютері, але можна й з телефону в браузері)
+1. Відкрийте [console.cloud.google.com](https://console.cloud.google.com/) → вгорі **Select a project → New project** → назва будь-яка (напр. `Mark Calendar`) → **Create**.
+2. **APIs & Services → Library** → знайдіть **Google Calendar API** → **Enable**.
+3. **Google Auth Platform** (раніше *OAuth consent screen*) → **Get started**: назва застосунку, ваша пошта → тип **External** → **Create**.
+4. **Audience → Test users → Add users** → додайте **ту саму пошту, з якої будете входити**.
+   - Порада: тут же можна натиснути **Publish app** («In production»). Тоді вхід не злітатиме кожні 7 днів (у режимі *Testing* Google видає токен лише на 7 днів). Попередження «Google не перевірив застосунок» залишиться — це нормально для особистого використання.
+5. **Clients → Create client** → тип **Desktop app** (⚠️ не *Web application*, інакше буде `redirect_uri_mismatch`) → **Create**.
+6. Скопіюйте **Client ID** (закінчується на `.apps.googleusercontent.com`) і **Client Secret**.
+
+**Б. Obsidian на комп'ютері**
+1. Налаштування → **Mark Calendar** → вставте Client ID і Client Secret.
+2. **Підключити** → у браузері виберіть акаунт → дозвольте доступ → вкладка напише «✅ Календар підключено».
+
+**В. Obsidian на телефоні**
+1. Налаштування → **Mark Calendar** → вставте Client ID і Client Secret (без пробілів).
+2. **Підключити** → **1. Увійти в Google** → відкриється браузер.
+3. Виберіть акаунт. Якщо з'явиться «Google не перевірив цей застосунок» → **Додатково** → **Перейти до … (небезпечно)**. Поставте всі галочки доступу → **Продовжити**.
+4. Браузер покаже помилку **«Сайт недоступний» / «127.0.0.1 refused to connect»** — так і має бути.
+5. Торкніться рядка адреси й скопіюйте **всю** адресу (вона починається з `http://127.0.0.1:53682/?state=…&code=…`).
+6. Поверніться в Obsidian → вставте адресу в поле (або кнопка **Вставити з буфера**) → **2. Готово**.
+
+> Якщо налаштування Obsidian синхронізуються між пристроями (папка `.obsidian` разом із `plugins/mark-calendar/data.json`), достатньо підключитися на одному пристрої.
+
+**Якщо не виходить**
+| Повідомлення | Що робити |
+|---|---|
+| `access_denied` / «Доступ заблоковано» | Вашої пошти немає в **Test users** (крок А4) |
+| `redirect_uri_mismatch` | Клієнт створено не як **Desktop app** — створіть новий (крок А5) |
+| `invalid_client` | Помилка в Client ID / Secret — скопіюйте ще раз, без пробілів |
+| `invalid_grant` | Код уже використано або застарів — пройдіть вхід ще раз і вставте нову адресу |
+| «Сесія Google закінчилась» через тиждень | Застосунок у режимі *Testing* — натисніть **Publish app** (крок А4) і підключіться знову |
+| Google API 403 | Не увімкнено **Google Calendar API** (крок А2) |
+
+### English (short)
+1. In Google Cloud Console enable **Google Calendar API**, configure the consent screen (External), add your account to *Test users* (or publish the app to avoid 7-day token expiry).
+2. Create an OAuth client of type **Desktop app**.
+3. Paste Client ID and Secret into the plugin settings and click **Connect**.
+   - Desktop: sign-in uses a local `127.0.0.1` redirect.
+   - Phone: the browser ends on a "can't connect to 127.0.0.1" page — copy that page's full address and paste it back into the plugin.
 
 ## Building
 ```bash

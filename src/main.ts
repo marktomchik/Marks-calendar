@@ -7,6 +7,7 @@ import { Reminders } from "./reminders";
 import { WeatherService, searchPlaces } from "./weather";
 import { CalendarView, VIEW_TYPE } from "./view";
 import { EventEditModal, EventModalActions } from "./modal";
+import { MobileAuthModal } from "./authModal";
 
 export default class MarkCalendarPlugin extends Plugin {
   settings!: Settings;
@@ -219,9 +220,11 @@ class MarkCalendarSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("Google Calendar").setHeading();
     const help = containerEl.createDiv({ cls: "setting-item-description mc-help" });
     help.innerHTML =
-      "1. У <a href=\"https://console.cloud.google.com/apis/credentials\">Google Cloud Console</a> увімкніть <b>Google Calendar API</b>.<br>" +
-      "2. Створіть OAuth Client ID типу <b>Desktop app</b>, додайте себе в Test users.<br>" +
-      "3. Вставте Client ID і Secret нижче та натисніть «Підключити» (на комп'ютері). На телефоні вхід підхопиться з синхронізованих налаштувань.";
+      "1. У <a href=\"https://console.cloud.google.com/\">Google Cloud Console</a> створіть проєкт і увімкніть <b>Google Calendar API</b>.<br>" +
+      "2. <b>Google Auth Platform → Audience</b>: тип External, додайте свою пошту в <b>Test users</b>.<br>" +
+      "3. <b>Clients → Create client</b>, тип <b>Desktop app</b> (не Web application!).<br>" +
+      "4. Вставте Client ID і Client Secret нижче й натисніть «Підключити» — працює і на комп'ютері, і на телефоні.<br>" +
+      "Детальна інструкція — у README на GitHub.";
 
     new Setting(containerEl).setName("Client ID").addText((t) =>
       t.setPlaceholder("…apps.googleusercontent.com").setValue(s.clientId).onChange(async (v) => { s.clientId = v.trim(); await save(); }));
@@ -241,6 +244,10 @@ class MarkCalendarSettingTab extends PluginSettingTab {
       }));
     } else {
       acc.addButton((b) => b.setButtonText("Підключити").setCta().onClick(async () => {
+        if (!Platform.isDesktopApp) {
+          new MobileAuthModal(this.app, p.google, async () => { await p.refreshCalendarList(); this.display(); }).open();
+          return;
+        }
         b.setDisabled(true).setButtonText("Чекаю на браузер…");
         try {
           await p.google.connect();
