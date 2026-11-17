@@ -225,7 +225,7 @@ class MarkCalendarSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     // ---------- Google ----------
-    new Setting(containerEl).setName("Google Calendar").setHeading();
+    new Setting(containerEl).setName("Google Calendar").setDesc(`Mark Calendar ${p.manifest.version}`).setHeading();
     const help = containerEl.createDiv({ cls: "setting-item-description mc-help" });
     help.innerHTML =
       "1. У <a href=\"https://console.cloud.google.com/\">Google Cloud Console</a> створіть проєкт і увімкніть <b>Google Calendar API</b>.<br>" +
@@ -244,7 +244,6 @@ class MarkCalendarSettingTab extends PluginSettingTab {
     const acc = new Setting(containerEl)
       .setName(p.google.connected ? `Підключено${s.tokens?.email ? `: ${s.tokens.email}` : ""}` : "Не підключено");
     if (p.google.connected) {
-      acc.addButton((b) => b.setButtonText("QR для телефону").onClick(() => new QrShowModal(this.app, p).open()));
       acc.addButton((b) => b.setButtonText("Оновити список календарів").onClick(async () => {
         try { await p.refreshCalendarList(); this.display(); } catch (e: any) { new Notice(e.message); }
       }));
@@ -269,6 +268,17 @@ class MarkCalendarSettingTab extends PluginSettingTab {
         this.display();
       }));
     }
+
+    // Separate, always-visible row so it's easy to find on the laptop.
+    const qrRow = new Setting(containerEl)
+      .setName("Вхід на телефоні через QR")
+      .setDesc(p.google.connected
+        ? "Покажіть код і відскануйте його на телефоні: Mark Calendar → «Сканувати QR з комп'ютера»."
+        : "Спочатку натисніть «Підключити» вище — після входу тут з'явиться QR для телефону.");
+    qrRow.addButton((b) => {
+      b.setButtonText("QR для телефону").onClick(() => new QrShowModal(this.app, p).open());
+      if (p.google.connected) b.setCta(); else b.setDisabled(true);
+    });
 
     if (s.calendars.length) {
       new Setting(containerEl).setName("Календарі").setHeading();
