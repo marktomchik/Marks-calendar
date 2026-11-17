@@ -1,11 +1,12 @@
 import { App, Modal, Notice, Setting } from "obsidian";
-import type { GoogleClient } from "./google";
+import type MarkCalendarPlugin from "./main";
+import { importTransfer, parseTransfer, scanQrAndConnect } from "./qrLogin";
 
 /** Phone sign-in: open Google in the browser, then paste back the address of the "page not available" tab. */
 export class MobileAuthModal extends Modal {
   private pasted = "";
 
-  constructor(app: App, private google: GoogleClient, private onDone: () => Promise<void>) {
+  constructor(app: App, private plugin: MarkCalendarPlugin, private onDone: () => void) {
     super(app);
   }
 
@@ -13,6 +14,11 @@ export class MobileAuthModal extends Modal {
     const { contentEl } = this;
     contentEl.addClass("mc-auth");
     this.titleEl.setText("Підключення Google на телефоні");
+
+    contentEl.createEl("p", { cls: "mc-auth-lead", text: "Найпростіше — якщо на комп'ютері календар уже підключений: там у налаштуваннях натисніть «QR для телефону» і відскануйте код." });
+    new Setting(contentEl).addButton((b) =>
+      b.setButtonText("Сканувати QR з комп'ютера").setCta().onClick(() => { this.close(); scanQrAndConnect(this.plugin, this.onDone); }));
+    contentEl.createEl("p", { cls: "mc-auth-lead", text: "Або увійдіть прямо з телефону:" });
 
     const steps = contentEl.createEl("ol", { cls: "mc-auth-steps" });
     steps.createEl("li", { text: "Натисніть «1. Увійти в Google» — відкриється браузер." });
@@ -22,8 +28,8 @@ export class MobileAuthModal extends Modal {
     steps.createEl("li", { text: "Поверніться в Obsidian, вставте адресу нижче і натисніть «2. Готово»." });
 
     new Setting(contentEl).addButton((b) =>
-      b.setButtonText("1. Увійти в Google").setCta().onClick(async () => {
-        try { window.open(await this.google.beginManualAuth()); } catch (e: any) { new Notice(e.message ?? String(e), 8000); }
+      b.setButtonText("1. Увійти в Google").onClick(async () => {
+        try { window.open(await this.plugin.google.beginManualAuth()); } catch (e: any) { new Notice(e.message ?? String(e), 8000); }
       }));
 
     const area = contentEl.createEl("textarea", { cls: "mc-auth-input", attr: { rows: "4", placeholder: "http://127.0.0.1:53682/?state=…&code=…" } });
@@ -33,11 +39,17 @@ export class MobileAuthModal extends Modal {
       .addButton((b) => b.setButtonText("Вставити з буфера").onClick(async () => {
         try { area.value = this.pasted = await navigator.clipboard.readText(); } catch { new Notice("Не вдалося прочитати буфер — вставте вручну"); }
       }))
-      .addButton((b) => b.setButtonText("2. Готово").setCta().onClick(async () => {
+      .addButton((b) => b.setButtonText("2. Готово").onClick(async () => {
         b.setDisabled(true).setButtonText("Підключаю…");
         try {
-          await this.google.finishManualAuth(this.pasted || area.value);
-          await this.onDone();
+          const text = this.pasted || area.value;
+          const transfer = parseTransfer(text);
+          if (transfer) await importTransfer(this.plugin, transfer);
+          else {
+            await this.plugin.google.finishManualAuth(text);
+            await this.plugin.refreshCalendarList();
+          }
+          this.onDone();
           new Notice("Google Calendar підключено ✅");
           this.close();
         } catch (e: any) {

@@ -8,6 +8,7 @@ import { WeatherService, searchPlaces } from "./weather";
 import { CalendarView, VIEW_TYPE } from "./view";
 import { EventEditModal, EventModalActions } from "./modal";
 import { MobileAuthModal } from "./authModal";
+import { QrConfirmModal, QrShowModal, parseTransfer, scanQrAndConnect } from "./qrLogin";
 
 export default class MarkCalendarPlugin extends Plugin {
   settings!: Settings;
@@ -51,6 +52,13 @@ export default class MarkCalendarPlugin extends Plugin {
     this.addCommand({ id: "zoom-reset", name: "Масштаб часу: скинути", callback: () => this.views().forEach((v) => v.zoomReset()) });
 
     this.addSettingTab(new MarkCalendarSettingTab(this.app, this));
+
+    // Sign-in transferred from another device: obsidian://mark-calendar?connect=…
+    this.registerObsidianProtocolHandler("mark-calendar", (params) => {
+      const t = params.connect ? parseTransfer(`?connect=${params.connect}`) : null;
+      if (t) new QrConfirmModal(this.app, this, t).open();
+      else if (params.connect) new Notice("Посилання для входу пошкоджене — покажіть QR ще раз.");
+    });
 
     new Reminders(
       this.app, this.store,
@@ -236,6 +244,7 @@ class MarkCalendarSettingTab extends PluginSettingTab {
     const acc = new Setting(containerEl)
       .setName(p.google.connected ? `Підключено${s.tokens?.email ? `: ${s.tokens.email}` : ""}` : "Не підключено");
     if (p.google.connected) {
+      acc.addButton((b) => b.setButtonText("QR для телефону").onClick(() => new QrShowModal(this.app, p).open()));
       acc.addButton((b) => b.setButtonText("Оновити список календарів").onClick(async () => {
         try { await p.refreshCalendarList(); this.display(); } catch (e: any) { new Notice(e.message); }
       }));
@@ -243,9 +252,12 @@ class MarkCalendarSettingTab extends PluginSettingTab {
         await p.google.disconnect(); s.calendars = []; await save(); p.store.invalidate(); this.display();
       }));
     } else {
+      if (!Platform.isDesktopApp) {
+        acc.addButton((b) => b.setButtonText("Сканувати QR з комп'ютера").onClick(() => scanQrAndConnect(p, () => this.display())));
+      }
       acc.addButton((b) => b.setButtonText("Підключити").setCta().onClick(async () => {
         if (!Platform.isDesktopApp) {
-          new MobileAuthModal(this.app, p.google, async () => { await p.refreshCalendarList(); this.display(); }).open();
+          new MobileAuthModal(this.app, p, () => this.display()).open();
           return;
         }
         b.setDisabled(true).setButtonText("Чекаю на браузер…");

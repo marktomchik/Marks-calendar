@@ -1,6 +1,6 @@
 # Mark Calendar
 
-A fast Google Calendar view for Obsidian — about 10× lighter than general-purpose calendar plugins (~320 KB).
+A fast Google Calendar view for Obsidian — much lighter than general-purpose calendar plugins (~490 KB).
 
 > 🇺🇦 **Коротко українською:** швидкий календар Google для Obsidian. Двостороння синхронізація з Google Calendar, нотатки до подій без дублікатів, масштаб годин через Ctrl/Shift + прокрутку, нагадування та погода в стилі iPhone. Інтерфейс плагіна — українською.
 
@@ -43,7 +43,14 @@ The plugin talks to Google directly with your own OAuth client — no third-part
 1. Налаштування → **Mark Calendar** → вставте Client ID і Client Secret.
 2. **Підключити** → у браузері виберіть акаунт → дозвольте доступ → вкладка напише «✅ Календар підключено».
 
-**В. Obsidian на телефоні**
+**В. Obsidian на телефоні — через QR (найпростіше)**
+1. На комп'ютері, де календар уже підключений: Налаштування → **Mark Calendar** → **QR для телефону**.
+2. На телефоні: Налаштування → **Mark Calendar** → **Сканувати QR з комп'ютера** → сфотографуйте код з екрана.
+3. Готово — Client ID, Secret і вхід перенесуться автоматично.
+   - Можна й звичайною камерою телефону: якщо вона запропонує відкрити посилання `obsidian://…` — натисніть «Відкрити» і підтвердьте.
+   - ⚠️ QR дає доступ до вашого календаря — не показуйте його стороннім.
+
+**Г. Obsidian на телефоні — без комп'ютера**
 1. Налаштування → **Mark Calendar** → вставте Client ID і Client Secret (без пробілів).
 2. **Підключити** → **1. Увійти в Google** → відкриється браузер.
 3. Виберіть акаунт. Якщо з'явиться «Google не перевірив цей застосунок» → **Додатково** → **Перейти до … (небезпечно)**. Поставте всі галочки доступу → **Продовжити**.
@@ -68,7 +75,7 @@ The plugin talks to Google directly with your own OAuth client — no third-part
 2. Create an OAuth client of type **Desktop app**.
 3. Paste Client ID and Secret into the plugin settings and click **Connect**.
    - Desktop: sign-in uses a local `127.0.0.1` redirect.
-   - Phone: the browser ends on a "can't connect to 127.0.0.1" page — copy that page's full address and paste it back into the plugin.
+   - Phone: easiest — on a signed-in desktop click **QR для телефону**, then on the phone **Сканувати QR з комп'ютера**. Or: the browser ends on a "can't connect to 127.0.0.1" page — copy that page's full address and paste it back into the plugin.
 
 ## Building
 ```bash
