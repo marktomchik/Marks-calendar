@@ -269,16 +269,18 @@ class MarkCalendarSettingTab extends PluginSettingTab {
       }));
     }
 
-    // Separate, always-visible row so it's easy to find on the laptop.
-    const qrRow = new Setting(containerEl)
-      .setName("Вхід на телефоні через QR")
-      .setDesc(p.google.connected
-        ? "Покажіть код і відскануйте його на телефоні: Mark Calendar → «Сканувати QR з комп'ютера»."
-        : "Спочатку натисніть «Підключити» вище — після входу тут з'явиться QR для телефону.");
-    qrRow.addButton((b) => {
-      b.setButtonText("QR для телефону").onClick(() => new QrShowModal(this.app, p).open());
-      if (p.google.connected) b.setCta(); else b.setDisabled(true);
-    });
+    if (Platform.isDesktopApp) {
+      // Separate, always-visible row so it's easy to find on the laptop.
+      const qrRow = new Setting(containerEl)
+        .setName("Вхід на телефоні через QR")
+        .setDesc(p.google.connected
+          ? "Покажіть код і відскануйте його на телефоні: Mark Calendar → «Сканувати QR з комп'ютера»."
+          : "Спочатку натисніть «Підключити» вище — після входу тут з'явиться QR для телефону.");
+      qrRow.addButton((b) => {
+        b.setButtonText("QR для телефону").onClick(() => new QrShowModal(this.app, p).open());
+        if (p.google.connected) b.setCta(); else b.setDisabled(true);
+      });
+    }
 
     if (s.calendars.length) {
       new Setting(containerEl).setName("Календарі").setHeading();
