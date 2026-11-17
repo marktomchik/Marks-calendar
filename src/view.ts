@@ -142,9 +142,43 @@ export class CalendarView extends ItemView {
 
     this.resizeObs = new ResizeObserver(() => this.calendar?.updateSize());
     this.resizeObs.observe(calEl);
+
+    // Phone: keep the view switcher above Obsidian's floating bottom bar and the system nav bar.
+    if (mobile) {
+      const update = () => this.updateBottomInset();
+      this.registerEvent(this.app.workspace.on("layout-change", update));
+      this.registerEvent(this.app.workspace.on("resize", update));
+      this.registerDomEvent(window, "resize", update);
+      this.registerDomEvent(window, "orientationchange", () => window.setTimeout(update, 300));
+      this.resizeObs.observe(root);
+      window.requestAnimationFrame(update);
+      window.setTimeout(update, 500);
+    }
     this.unsub = this.plugin.store.onChange(() => this.calendar?.refetchEvents());
 
     if (s.weatherEnabled) this.loadWeather(false);
+  }
+
+  /** How much of the view's bottom is covered by Obsidian's mobile bottom bar → CSS var. */
+  private updateBottomInset(): void {
+    const root = this.contentEl;
+    const rect = root.getBoundingClientRect();
+    if (!rect.height) return;
+    let cover = 0;
+    document.querySelectorAll<HTMLElement>(".mobile-navbar").forEach((bar) => {
+      const r = bar.getBoundingClientRect();
+      if (!r.height || !r.width) return;
+      const cs = getComputedStyle(bar);
+      if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return;
+      // Only count bars that actually overlap this view (floating navbar sits on top of content).
+      if (r.right <= rect.left || r.left >= rect.right) return;
+      if (r.top < rect.bottom && r.bottom > rect.top) cover = Math.max(cover, rect.bottom - r.top);
+    });
+    const value = cover > 0 ? `${Math.ceil(cover) + 8}px` : "0px";
+    if (root.style.getPropertyValue("--mc-bottom-inset") !== value) {
+      root.style.setProperty("--mc-bottom-inset", value);
+      this.calendar?.updateSize();
+    }
   }
 
   async onClose(): Promise<void> {

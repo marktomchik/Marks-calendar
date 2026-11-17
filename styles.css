@@ -172,7 +172,12 @@
 .mc-w-error { grid-column: 1 / -1; cursor: pointer; opacity: 0.9; }
 
 /* ===== Mobile ===== */
-.mc-mobile.mc-root { padding: 6px 6px 0 !important; gap: 6px; }
+.mc-mobile.mc-root {
+  padding: 6px 6px 0 !important;
+  /* Lift the view switcher above Obsidian's floating bottom bar (measured in JS) and the system nav bar. */
+  padding-bottom: max(var(--mc-bottom-inset, 0px), env(safe-area-inset-bottom, 0px)) !important;
+  gap: 6px;
+}
 .mc-mobile .mc-weather { grid-template-columns: 1fr; padding: 10px; gap: 8px; border-radius: 16px; }
 .mc-mobile .mc-w-now {
   display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto;
